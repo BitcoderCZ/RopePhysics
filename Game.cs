@@ -19,7 +19,7 @@ namespace RopePhysics
     public class Game : Engine
     {
         const float Gravity = 9.8f;
-        const int numbIterations = 20;
+        const int numbIterations = 50;
         const int pointRadius = 20;
         const int minPointRadius = 2;
         const float MovementSpeed = 250f;
@@ -76,17 +76,41 @@ namespace RopePhysics
                 Zoom += 0.05f * Zoom;
             else if (args.WheelDelta < 0)
                 Zoom -= 0.05f * Zoom;
+
+            if (Zoom < 0.075f)
+                Zoom = 0.075f;
+            else if (Zoom > 2.5f)
+                Zoom = 2.5f;
         }
 
         private void OnMouseMove(object sender, IMouseEventArgs args)
         {
-            if (simulating && GameWindow.Input.mouseButtons == MouseButtons.Right)
+            if ((simulating || GameWindow.Input.GetKey(Key.Delete).pressed) && GameWindow.Input.mouseButtons == MouseButtons.Right) {
+                List<Point> pointToRemove = new List<Point>();
+                Vector2F pos = (Vector2F)GameWindow.Input.mousePosScreen;
+                for (int i = 0; i < points.Count; i++)
+                    if (Util.Project(points[i].Pos).Distance(pos) < pointRadius / 2f) {
+                        pointToRemove.Add(points[i]);
+                        points.RemoveAt(i);
+                        i--;
+                    }
+
                 for (int i = 0; i < sticks.Count; i++) {
-                    if (IsIntersecting(Util.Project(sticks[i].PointA.Pos), Util.Project(sticks[i].PointB.Pos), GameWindow.Input.mousePosScreen, args.Position.ToVector2I())) {
+                    if (Util.LineToPointDistance(Util.Project(sticks[i].PointA.Pos), Util.Project(sticks[i].PointB.Pos), (Vector2F)args.Position) < 4f
+                        || IsIntersecting(Util.Project(sticks[i].PointA.Pos), Util.Project(sticks[i].PointB.Pos),
+                        GameWindow.Input.mousePosScreen, (Vector2F)args.Position)) {
                         sticks.RemoveAt(i);
                         i--;
                     }
+                    else
+                        for (int j = 0; j < pointToRemove.Count; j++)
+                            if (sticks[i].PointA == pointToRemove[j] || sticks[i].PointB == pointToRemove[j]) {
+                                sticks.RemoveAt(i);
+                                i--;
+                                break;
+                            }
                 }
+            }
         }
 
         private void OnKeyDown(object sender, IKeyEventArgs args)
@@ -158,7 +182,7 @@ namespace RopePhysics
             else if (GameWindow.Input.GetKey(Key.D).pressed)
                 Pos += -Vector2F.UnitX * delta * MovementSpeed;
 
-            if (GameWindow.Input.mouseButtons == MouseButtons.Right && selectedPoint != null) {
+            if (GameWindow.Input.mouseButtons == MouseButtons.Right && selectedPoint != null && !GameWindow.Input.GetKey(Key.Delete).pressed) {
                 Point p = GetClicked(GameWindow.Input.mousePosScreen, pointRadius);
                 if (p != null) {
                     float lenght = new Vector2F(Math.Abs(selectedPoint.Pos.X - p.Pos.X),
@@ -176,6 +200,28 @@ namespace RopePhysics
                         sticks.Add(s);
                     selectedPoint = p;
                 }
+            }
+            else if ((simulating || GameWindow.Input.GetKey(Key.Delete).pressed) && GameWindow.Input.mouseButtons == MouseButtons.Right) {
+                List<Point> pointToRemove = new List<Point>();
+                Vector2F pos = (Vector2F)GameWindow.Input.mousePosScreen;
+                for (int i = 0; i < points.Count; i++)
+                    if (Util.Project(points[i].Pos).Distance(pos) < pointRadius / 2f) {
+                        pointToRemove.Add(points[i]);
+                        points.RemoveAt(i);
+                        i--;
+                    }
+
+                for (int i = 0; i < sticks.Count; i++)
+                    if (Util.LineToPointDistance(Util.Project(sticks[i].PointA.Pos), Util.Project(sticks[i].PointB.Pos), pos) < 4f) {
+                        sticks.RemoveAt(i);
+                        i--;
+                    } else
+                        for (int j = 0; j < pointToRemove.Count; j++)
+                            if (sticks[i].PointA == pointToRemove[j] || sticks[i].PointB == pointToRemove[j]) {
+                                sticks.RemoveAt(i);
+                                i--;
+                                break;
+                            }
             }
 
             if (simulating)
