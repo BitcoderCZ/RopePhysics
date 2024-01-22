@@ -4,6 +4,7 @@ using GameEngine.Maths;
 using GameEngine.Maths.Vectors;
 using GameEngine.UI;
 using GameEngine.Utils;
+using RopePhysics.LockedStates;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -72,15 +73,27 @@ namespace RopePhysics
 
         private void OnMouseWheel(object sender, IMouseEventArgs args)
         {
-            if (args.WheelDelta > 0)
-                Zoom += 0.05f * Zoom;
-            else if (args.WheelDelta < 0)
-                Zoom -= 0.05f * Zoom;
+            if (GameWindow.Input.GetKey(Key.LeftCtrl).pressed)
+            {
+                Point p;
+                if ((p = GetClicked(args.Position, pointRadius)) != null)
+                {
+                    p.Mass += args.WheelDelta / 100f;
+                    Console.WriteLine(p.Mass);
+                }
+            }
+            else
+            {
+                if (args.WheelDelta > 0)
+                    Zoom += 0.05f * Zoom;
+                else if (args.WheelDelta < 0)
+                    Zoom -= 0.05f * Zoom;
 
-            if (Zoom < 0.075f)
-                Zoom = 0.075f;
-            else if (Zoom > 2.5f)
-                Zoom = 2.5f;
+                if (Zoom < 0.075f)
+                    Zoom = 0.075f;
+                else if (Zoom > 2.5f)
+                    Zoom = 2.5f;
+            }
         }
 
         private void OnMouseMove(object sender, IMouseEventArgs args)
@@ -130,12 +143,12 @@ namespace RopePhysics
             if (!simulating){
                 if (args.Buttons == MouseButtons.Left) {
                     Vector2F pos = Util.UnProject((Vector2F)args.Position);
-                    points.Add(new Point() { Locked = false, Pos = pos, PrevPos = pos });
+                    points.Add(new Point(pos));
                 }
                 else if (args.Buttons == MouseButtons.Middle) {
                     Point p = GetClicked(args.Position, pointRadius);
                     if (p != null)
-                        p.Locked = !p.Locked;
+                        p.State = (p.State + 1) % LockedStates.LockedStates.States.Length;
                 } else if (args.Buttons == MouseButtons.Right) {
                     Vector2F pos = Util.UnProject((Vector2F)args.Position);
 
@@ -232,7 +245,7 @@ namespace RopePhysics
             for (int i = 0; i < sticks.Count; i++)
                 DrawLine(Util.Project((Vector2I)sticks[i].PointA.Pos), Util.Project((Vector2I)sticks[i].PointB.Pos), Color.White);
             for (int i = 0; i < points.Count; i++)
-                FillCircle(Util.Project((Vector2I)points[i].Pos), Math.Max((int)((pointRadius / 4) * Zoom), minPointRadius), points[i].Locked ? Color.Red : Color.White);
+                FillCircle(Util.Project((Vector2I)points[i].Pos), Math.Max((int)((pointRadius / 4) * Zoom), minPointRadius), LockedStates.LockedStates.States[points[i].State].Color);
 
             if (!simulating) {
                 if (selectedPoint != null) {
@@ -278,12 +291,11 @@ namespace RopePhysics
         {
             for (int i = 0; i < points.Count; i++) {
                 Point p = points[i];
-                if (p.Locked)
-                    continue;
+                ILockedState state = LockedStates.LockedStates.States[p.State];
 
                 Vector2F posBeforeUpdate = p.Pos;
-                p.Pos += p.Pos - p.PrevPos;
-                p.Pos += new Vector2F(0f, 1f) * Gravity * delta;
+                p.Pos = state.Add(p.Pos, p.Pos - p.PrevPos);
+                p.Pos = state.Add(p.Pos, new Vector2F(0f, 1f) * Gravity * p.Mass * delta);
                 p.PrevPos = posBeforeUpdate;
             }
 
@@ -292,10 +304,12 @@ namespace RopePhysics
                     Stick s = sticks[i];
                     Vector2F center = (s.PointA.Pos + s.PointB.Pos) / 2f;
                     Vector2F dir = (s.PointA.Pos - s.PointB.Pos).Normalized();
-                    if (!s.PointA.Locked)
-                        s.PointA.Pos = center + dir * s.Length / 2f;
-                    if (!s.PointB.Locked)
-                        s.PointB.Pos = center - dir * s.Length / 2f;
+
+                    ILockedState stateA = LockedStates.LockedStates.States[s.PointA.State];
+                    ILockedState stateB = LockedStates.LockedStates.States[s.PointB.State];
+
+                    s.PointA.Pos = stateA.Set(s.PointA.Pos, center + dir * s.Length / 2f);
+                    s.PointB.Pos = stateB.Set(s.PointB.Pos, center - dir * s.Length / 2f);
                 }
         }
 

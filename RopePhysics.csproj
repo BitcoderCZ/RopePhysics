@@ -10,6 +10,7 @@
     <AssemblyName>RopePhysics</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <LangVersion>8.0</LangVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
@@ -54,7 +55,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="GameEngine">
-      <HintPath>..\GameEngine\bin\x64\Release\GameEngine.dll</HintPath>
+      <HintPath>..\RenderEngine\bin\x64\Release\GameEngine.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -76,6 +77,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Game.cs" />
+    <Compile Include="LockedStates\ILockedState.cs" />
+    <Compile Include="LockedStates\LockedStates.cs" />
+    <Compile Include="LockedStates\StateLocked.cs" />
+    <Compile Include="LockedStates\StateUnlockedX.cs" />
+    <Compile Include="LockedStates\StateUnlocked.cs" />
+    <Compile Include="LockedStates\StateUnlockedY.cs" />
     <Compile Include="Point.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

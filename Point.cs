@@ -11,6 +11,15 @@ namespace RopePhysics
     {
         public Vector2F Pos;
         public Vector2F PrevPos;
-        public bool Locked;
+        public int State;
+        public float Mass;
+
+        public Point(Vector2F _pos)
+        {
+            Pos = _pos;
+            PrevPos = _pos;
+            State = 0;
+            Mass = 1f;
+        }
     }
 }
